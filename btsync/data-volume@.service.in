@@ -1,0 +1,34 @@
+[Unit]
+Description=btsync data volume
+#BindsTo=%i.service
+
+[Service]
+TimeoutStartSec=0
+
+ExecStartPre=/usr/bin/mkdir -p /var/lib/data/%p
+
+ExecStartPre=/usr/bin/docker pull crewjam/btsync
+
+ExecStartPre=-/usr/bin/etcdctl mkdir /services/%p
+
+ExecStartPre=/bin/bash -ex -c '\
+  /usr/bin/etcdctl get /services/%p/btsync_secret || (\
+    /usr/bin/docker run crewjam/btsync btsync --generate-secret | \
+      /usr/bin/etcdctl mk /services/%p/btsync_secret;\
+    sleep 10;\
+  )\
+  '
+
+ExecStart=/bin/bash -c '\
+  docker run --rm --name %p \
+    -v /var/lib/data/%p:/data \
+    crewjam/btsync \
+    start-btsync $(/usr/bin/etcdctl get /services/%p/btsync_secret) \
+  '
+
+ExecStop=/usr/bin/docker stop %p
+
+[X-Fleet]
+#X-Conflicts=%p@*.service
+X-ConditionMachineOf=%i.service
+

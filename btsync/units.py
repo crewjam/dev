@@ -1,28 +1,36 @@
 
 import argparse
 import sys
-from os.path import pathjoin, dirname
+from os.path import join as pathjoin, dirname
 
 sys.path.insert(0, pathjoin(dirname(dirname(__file__)), "lib"))
 from docker_unit import ContainerRunnerUnit
 
 
-class AmbassadorUnit(ContainerRunnerUnit):
-  CONTAINER = "crewjam/ambassador"
+class DataVolumeUnit(ContainerRunnerUnit):
+  CONTAINER = "crewjam/btsync"
 
-  def __init__(self, foreign_service_name, local_service_name, port):
-    self.port = port
-    self.foreign_service_name = foreign_service_name
-    self.local_service_name = local_service_name
-    self.local_base_service_name = local_service_name.split("@")[0]
-
+  def __init__(self, service_name):
+    self.service_name = service_name
     ContainerRunnerUnit.__init__(self,
       container=self.CONTAINER,
-      name="{}-{}-amb".format(self.foreign_service_name,
-        self.base_service_name),
-      description="{} ambassador for {}".format(self.foreign_service_name,
-        self.base_service_name))
-    self.options.extend(["-p", "{}:{}".format(self.port, self.port)])
+      name="data-volume",
+      description="btsync data volume")
+
+    self.options.extend(["-v", "/var/lib/data/%p:/data"])
+    self.shell = True
+    self.command = [
+      "/main",
+      "$(/usr/bin/etcdctl get /services/%p/btsync_secret)"
+    ]
+
+    # Generate a secret if one is not present in etcd
+    self.extra_prestart.append("/bin/bash -ex -c '\
+      /usr/bin/etcdctl get /services/%p/btsync_secret || (\
+        /usr/bin/docker run crewjam/btsync btsync --generate-secret | \
+          /usr/bin/etcdctl mk /services/%p/btsync_secret;\
+        sleep 10;\
+      )'")
 
     self.command = [
       "/bin/ambassador",
@@ -32,13 +40,7 @@ class AmbassadorUnit(ContainerRunnerUnit):
     ]
 
     self.extra_unit.append("Before={}".format(self.service_name))
-
     self.x_fleet.append("X-ConditionMachineOf={}".format(self.service_name))
-
-    # Sadly we cannot run on hosts with any of these other things because we
-    # bind to our port just like they do.
-    self.x_fleet.append("X-Conflicts={}@*.service".format(
-      self.foreign_service_name))
 
 
 def Main(args=sys.argv[1:]):

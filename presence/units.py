@@ -7,51 +7,38 @@ sys.path.insert(0, pathjoin(dirname(dirname(__file__)), "lib"))
 from docker_unit import ContainerRunnerUnit
 
 
-class AmbassadorUnit(ContainerRunnerUnit):
-  CONTAINER = "crewjam/btsync"
+class PresenceUnit(ContainerRunnerUnit):
+  CONTAINER = "crewjam/presence"
 
   def __init__(self, service_name):
     self.service_name = service_name
+    self.base_service_name = service_name.split("@")[0]
     ContainerRunnerUnit.__init__(self,
       container=self.CONTAINER,
-      name="data-volume",
-      description="btsync data volume")
+      name=self.base_service_name + "-presence",
+      description=self.base_service_name + " presence")
 
-    self.options.extend(["-v", "/var/lib/data/%p:/data"])
     self.shell = True
     self.command = [
-      "/main",
-      "$(/usr/bin/etcdctl get /services/%p/btsync_secret)"
-    ]
-
-    # Generate a secret if one is not present in etcd
-    self.extra_prestart.append("/bin/bash -ex -c '\
-      /usr/bin/etcdctl get /services/%p/btsync_secret || (\
-        /usr/bin/docker run crewjam/btsync btsync --generate-secret | \
-          /usr/bin/etcdctl mk /services/%p/btsync_secret;\
-        sleep 10;\
-      )'")
-
-    self.command = [
-      "/bin/ambassador",
-      "--etcd-prefix=/services/{}".format(self.foreign_service_name),
+      "/bin/presence",
+      "--etcd-prefix=/services/{}".format(self.base_service_name),
       "--etcd=${COREOS_PRIVATE_IPV4}",
-      "--port={}".format(self.port),
+      "--instance=%i",
+      "--host=%H",
+      "--private-ip=${COREOS_PRIVATE_IPV4}",
+      "--public-ip=${COREOS_PUBLIC_IPV4}"
     ]
 
-    self.extra_unit.append("Before={}".format(self.service_name))
+    self.extra_unit.append("BindsTo={}".format(self.service_name))
     self.x_fleet.append("X-ConditionMachineOf={}".format(self.service_name))
 
 
 def Main(args=sys.argv[1:]):
   parser = argparse.ArgumentParser()
-  parser.add_argument("--foreign-service", "-f")
-  parser.add_argument("--local-service", "-l")
-  parser.add_argument("--port", type=int)
+  parser.add_argument("--service", "-s")
   options = parser.parse_args(args)
 
-  unit = AmbassadorUnit(foreign_service_name=options.foreign_service,
-    local_service_name=options.local_service, port=options.port)
+  unit = PresenceUnit(service_name=options.service)
   print str(unit)
 
 
