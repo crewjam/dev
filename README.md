@@ -1,8 +1,53 @@
 dev
 ===
 
-Example infrastructure for building a development environment with CoreOS and 
-Docker.
+Infrastructure for building a development and collaboration environment with
+CoreOS and Docker. 
+
+We wanted to understand what was involved in using CoreOS and Docker to provide
+highly available services with AWS. While there are lots of toy examples out
+there, providing real services illuminates a whole range of management and 
+organization issue.
+
+This cluster must provide a variety of services for our team:
+
+ - Gerrit for code reviews (state is in the file system and a postgres database)
+ - Buildbot for build automation (requires connection to a fleet of Windows VMs 
+   hosted elsewhere, state is in the file system plus a postgres database)
+ - A mediawiki instance (state is on the file system and in a ~mysql~ postgres 
+   database. Sensing a pattern yet?)
+ - An internal application that uses PHP (ugh) and a local database (mysql?)
+ - Strong user account management, authorization and authentication. 
+ - A simple internal service to upload files and email a link to the file.
+ - An internal service that uses SFTP and keeps state on the local file system.
+ - A number of restful services that proxy API access to other REST services.
+   (We purchase access to these services but do not want to widely share the 
+   authorization keys)
+ - An application that lets users self-manage SSH keys for other systems and 
+   allows those systems to manage user accounts.
+ - We have a dynamic team that produces ad-hoc applications from time to time. 
+ 
+In addition we have production systems that use Elasticsearch, Cassandra and
+Mongodb and we want to understand how those systems might work in a 
+Docker/CoreOS landscape.
+
+Here is what the architecture looks like:
+
+  ![architecture](doc/architecture.jpeg)
+
+*Main* nodes (I accidentally wrote "master" on the drawing but I'm too lazy to 
+fix it) run CoreOS and etcd and docker containers as coordinated by fleet. 
+*worker* nodes are just like main nodes except they do not run etcd (they run
+etcd-amb instead). *data* nodes run CoreOS but they run a dedicated task (i.e.
+being an elasticsearch data node) via docker launched by systemd.
+
+In this configuration the main nodes are in a fixed-size autoscaling (between
+3 and 9 machines). The worker nodes are in an autoscaling group that can grow
+and shrink as needed, possibly with automation. The data nodes are in an 
+autoscaling group whose size changes manually. 
+
+The entire configuration is described by a cloudformation document that we 
+generate programmatically. 
 
 Building Containers
 -------------------
@@ -36,8 +81,8 @@ Open Issues
 - Exactly how to get all the fleet units configured when launching a cluster or
   adding a service is still rather an open question. I'd like to figure out 
   
-Configuration
--------------
+Configuration Notes
+-------------------
 
 Set up AWS keys:
 
