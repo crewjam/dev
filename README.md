@@ -7,7 +7,7 @@ CoreOS and Docker.
 We wanted to understand what was involved in using CoreOS and Docker to provide
 highly available services with AWS. While there are lots of toy examples out
 there, providing real services illuminates a whole range of management and 
-organization issue.
+organization issues.
 
 This cluster must provide a variety of services for our team:
 
@@ -27,22 +27,23 @@ This cluster must provide a variety of services for our team:
    allows those systems to manage user accounts.
  - We have a dynamic team that produces ad-hoc applications from time to time. 
  
-In addition we have production systems that use Elasticsearch, Cassandra and
-Mongodb and we want to understand how those systems might work in a 
-Docker/CoreOS landscape.
+Although not critical to the program, we have production systems that use 
+Elasticsearch, Cassandra and Mongodb and we want to understand how those systems 
+might work in this landscape.
 
 Here is what the architecture looks like:
 
   ![architecture](doc/architecture.jpeg)
 
-*Main* nodes (I accidentally wrote "master" on the drawing but I'm too lazy to 
-fix it) run CoreOS and etcd and docker containers as coordinated by fleet. 
-*worker* nodes are just like main nodes except they do not run etcd (they run
-etcd-amb instead). *data* nodes run CoreOS but they run a dedicated task (i.e.
+**main** nodes (I accidentally wrote "master" on the drawing -- TODO fix it) run 
+CoreOS and etcd and docker containers as coordinated by fleet. 
+**worker** nodes are just like main nodes except they do not run etcd (they run
+etcd-amb instead). **data** nodes run CoreOS but they run a dedicated task (i.e.
 being an elasticsearch data node) via docker launched by systemd.
 
-In this configuration the main nodes are in a fixed-size autoscaling (between
-3 and 9 machines). The worker nodes are in an autoscaling group that can grow
+In this configuration the main nodes are in a fixed-size autoscaling group 
+(CoreOS recommend at least three but not more than 9 machines). The worker nodes
+are in an autoscaling group that can grow
 and shrink as needed, possibly with automation. The data nodes are in an 
 autoscaling group whose size changes manually. 
 
