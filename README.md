@@ -21,8 +21,8 @@ This cluster must provide a variety of services for our team:
  - A simple internal service to upload files and email a link to the file.
  - An internal service that uses SFTP and keeps state on the local file system.
  - A number of restful services that proxy API access to other REST services.
-   (We purchase access to these services but do not want to widely share the 
-   authorization keys)
+   We cache some results from theses services with Redis. (We purchase access to
+   these services but do not want to widely share the authorization keys)
  - An application that lets users self-manage SSH keys for other systems and 
    allows those systems to manage user accounts.
  - We have a dynamic team that produces ad-hoc applications from time to time. 
@@ -50,18 +50,63 @@ autoscaling group whose size changes manually.
 The entire configuration is described by a cloudformation document that we 
 generate programmatically. 
 
-Building Containers
--------------------
+Shared Filesystem
+-----------------
+
+Many of our applications require shared state. We considered using a distributed
+file system like GlusterFS or Ceph. (TODO why didn't we use those)
+
+Instead we chose a decentralized approach using btsync. btsync uses bittorrent
+to synchronize files across volumes which share the same secret key. In this
+model the application writes to the local disk but the data are available across
+all zones. Experimentally the latency between btsync replicated volumes across
+zones is just a couple of seconds.
+
+**Why not use EBS?**
+
+EBS volumes are constrained to a single availability zone. Although you can copy
+snapshots across zones, this would create a high latency in the event of losing
+an entire availability zone.
+
+Database Architecture
+---------------------
+
+* Three postgres database containers on three different machines hold an 
+  election to determine which should be the master. The winner runs postgres 
+  while the losers block until the master dies when they can re-run the 
+  leader election.
+
+* A btsync container keeps the postgres data volume in sync across the master
+  and all the slaves.
+
+* An ambassador tracks which instance is the master and proxies for the 
+  application so that the application doesn't have to care when the master 
+  changes.
+
+  ![postgres](doc/postgres.jpeg)
+
+**Why not use postgres high availability?**
+
+Two reasons. First, it seemed hard. There are a bunch of manual steps
+needed to perform initial setup and manual steps after each master transition
+and getting all that set up seemed pretty tricky. Second, we wanted a more 
+general approach that would work with other databases (like Redis).
+(ref: http://www.postgresql.org/docs/9.3/static/warm-standby.html)
+
+Logistics
+---------
+
+### Building Containers ###
 
 Each container has a build.sh script that can be used to build, tag and push
-the container to the docker registry. 
+the container to the docker registry. All the real work of the cluster is done
+is containers. 
 
     for container in ambassador etcd-amb presence; do
       ./$container/build.sh
     done
 
-Cloud Formation
----------------
+### Cloud Formation ###
 
 Cloud Formation is mechanism and format for declaring AWS resources. Rather than
 hand produce a repetitive document, we have code that produces a cloudformation
@@ -71,6 +116,17 @@ build and update clusters with the tool as well.
     cloudformation/build.py --dns-name dev.example.com \
       --key=alice@example.com \
       build
+
+Our cloud formation document launches instances in a VPC split into three 
+subnets, one for each of three availability zones. All the machines are launched
+in autoscaling groups which makes it so that if we (or AWS) terminate a machine,
+it is automatically recreated.
+
+**Why write code to generate cloudformation?**
+
+  The JSON got long and repetitive. We wanted to avoid repeating ourselves, 
+  break the parts up into reusable compontents and wanted to add comments and 
+  stuff.
 
 Open Issues
 -----------
