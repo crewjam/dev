@@ -2,10 +2,8 @@
 
 import argparse
 import sys
-from os.path import join as pathjoin, dirname
 
-sys.path.insert(0, pathjoin(dirname(dirname(__file__)), "lib"))
-from docker_unit import ContainerRunnerUnit
+from dev.units.docker import ContainerRunnerUnit
 
 
 class EtcdAmbassadorUnit(ContainerRunnerUnit):
@@ -29,13 +27,10 @@ class EtcdAmbassadorUnit(ContainerRunnerUnit):
 
 def Main(args=sys.argv[1:]):
   parser = argparse.ArgumentParser()
-  parser.add_argument("--foreign-service", "-f")
-  parser.add_argument("--local-service", "-l")
-  parser.add_argument("--port", type=int)
+  parser.add_argument("--discovery-url")
   options = parser.parse_args(args)
 
-  unit = EtcdAmbassadorUnit(foreign_service_name=options.foreign_service,
-    local_service_name=options.local_service, port=options.port)
+  unit = EtcdAmbassadorUnit(discovery_url=options.discovery_url)
   print str(unit)
 
 

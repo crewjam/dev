@@ -1,0 +1,8 @@
+#!/bin/sh
+set -ex
+
+echo "postgres server: $POSTGRES_SERVER"
+cat /gerrit.config | sed "s/@@POSTGRES_SERVER@@/$POSTGRES_SERVER/g" \
+  > /data/etc/gerrit.config
+
+exec /data/bin/gerrit.sh supervise -d /data

@@ -3,8 +3,7 @@ import argparse
 import sys
 from os.path import join as pathjoin, dirname
 
-sys.path.insert(0, pathjoin(dirname(dirname(__file__)), "lib"))
-from docker_unit import ContainerRunnerUnit
+from dev.units.docker import ContainerRunnerUnit
 
 
 class PresenceUnit(ContainerRunnerUnit):

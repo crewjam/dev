@@ -2,7 +2,8 @@ import re
 
 import yaml
 
-from docker_unit import ContainerRunnerUnit
+from dev.units.etcd import EtcdAmbassadorUnit
+
 
 ZONES = ["us-west-2a", "us-west-2b", "us-west-2c"]
 
@@ -170,7 +171,11 @@ class MainNodeBuilder(NodeBuilder):
   def AuthorizeServices(self):
     # TODO(ross): this is less general than it should be w/r/t allowing
     #   applications
-    for group in [self.name, WorkerNodeBuilder.name, "nodes-es"]:
+    all_groups = ["nodes-main", "nodes-worker"]
+    if self.options.with_elasticsearch:
+      all_groups.append("nodes-es")
+
+    for group in all_groups:
       for port in [4001, 7001]:
         self.AuthorizeInternalService("etcd" + str(port), port, group)
       for port in [9200, 9300]:
@@ -201,7 +206,11 @@ class WorkerNodeBuilder(NodeBuilder):
     return data
 
   def AuthorizeServices(self):
-    for group in ["nodes-main", "nodes-worker", "nodes-es"]:
+    all_groups = ["nodes-main", "nodes-worker"]
+    if self.options.with_elasticsearch:
+      all_groups.append("nodes-es")
+
+    for group in all_groups:
       for port in [9200, 9300]:
         self.AuthorizeInternalService("elasticsearch" + str(port), port, group)
 

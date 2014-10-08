@@ -1,11 +1,8 @@
 
 import argparse
 import sys
-from os.path import pathjoin, dirname
 
-sys.path.insert(0, pathjoin(dirname(dirname(__file__)), "lib"))
-from docker_unit import ContainerRunnerUnit
-
+from dev.units.docker import ContainerRunnerUnit
 
 class AmbassadorUnit(ContainerRunnerUnit):
   CONTAINER = "crewjam/ambassador"
@@ -19,9 +16,9 @@ class AmbassadorUnit(ContainerRunnerUnit):
     ContainerRunnerUnit.__init__(self,
       container=self.CONTAINER,
       name="{}-{}-amb".format(self.foreign_service_name,
-        self.base_service_name),
+        self.local_base_service_name),
       description="{} ambassador for {}".format(self.foreign_service_name,
-        self.base_service_name))
+        self.local_base_service_name))
     self.options.extend(["-p", "{}:{}".format(self.port, self.port)])
 
     self.command = [
@@ -31,9 +28,9 @@ class AmbassadorUnit(ContainerRunnerUnit):
       "--port={}".format(self.port),
     ]
 
-    self.extra_unit.append("Before={}".format(self.service_name))
+    self.extra_unit.append("Before={}".format(self.local_service_name))
 
-    self.x_fleet.append("X-ConditionMachineOf={}".format(self.service_name))
+    self.x_fleet.append("X-ConditionMachineOf={}".format(self.local_service_name))
 
     # Sadly we cannot run on hosts with any of these other things because we
     # bind to our port just like they do.
@@ -45,7 +42,7 @@ def Main(args=sys.argv[1:]):
   parser = argparse.ArgumentParser()
   parser.add_argument("--foreign-service", "-f")
   parser.add_argument("--local-service", "-l")
-  parser.add_argument("--port", type=int)
+  parser.add_argument("--port", "-p", type=int)
   options = parser.parse_args(args)
 
   unit = AmbassadorUnit(foreign_service_name=options.foreign_service,

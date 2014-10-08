@@ -1,10 +1,8 @@
 
 import argparse
 import sys
-from os.path import join as pathjoin, dirname
 
-sys.path.insert(0, pathjoin(dirname(dirname(__file__)), "lib"))
-from docker_unit import ContainerRunnerUnit
+from dev.units.docker import ContainerRunnerUnit
 
 
 class DataVolumeUnit(ContainerRunnerUnit):
@@ -32,26 +30,16 @@ class DataVolumeUnit(ContainerRunnerUnit):
         sleep 10;\
       )'")
 
-    self.command = [
-      "/bin/ambassador",
-      "--etcd-prefix=/services/{}".format(self.foreign_service_name),
-      "--etcd=${COREOS_PRIVATE_IPV4}",
-      "--port={}".format(self.port),
-    ]
-
     self.extra_unit.append("Before={}".format(self.service_name))
     self.x_fleet.append("X-ConditionMachineOf={}".format(self.service_name))
 
 
 def Main(args=sys.argv[1:]):
   parser = argparse.ArgumentParser()
-  parser.add_argument("--foreign-service", "-f")
-  parser.add_argument("--local-service", "-l")
-  parser.add_argument("--port", type=int)
+  parser.add_argument("--service", "-s")
   options = parser.parse_args(args)
 
-  unit = AmbassadorUnit(foreign_service_name=options.foreign_service,
-    local_service_name=options.local_service, port=options.port)
+  unit = DataVolumeUnit(service_name=options.service)
   print str(unit)
 
 

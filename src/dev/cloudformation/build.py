@@ -8,9 +8,9 @@ import urllib2
 import boto
 import boto.cloudformation
 
-from network import BuildNetwork
-from nodes import MainNodeBuilder, WorkerNodeBuilder
-from elasticsearch_units import ElasticsearchNodeBuilder
+from dev.cloudformation.network import BuildNetwork
+from dev.cloudformation.nodes import MainNodeBuilder, WorkerNodeBuilder
+from dev.cloudformation.elasticsearch import ElasticsearchNodeBuilder
 
 data = {
   "AWSTemplateFormatVersion": "2010-09-09",
@@ -65,7 +65,8 @@ def Build(options, data):
   BuildNetwork(options, data)
   MainNodeBuilder(options, data)()
   WorkerNodeBuilder(options, data)()
-  ElasticsearchNodeBuilder(options, data)()
+  if options.with_elasticsearch:
+    ElasticsearchNodeBuilder(options, data)()
 
 
 def Main(args=sys.argv[1:]):
@@ -73,6 +74,7 @@ def Main(args=sys.argv[1:]):
   parser.add_argument("mode", choices=["cat", "validate", "create", "update"])
   parser.add_argument("--dns-name", required=True)
   parser.add_argument("--discovery-url")
+  parser.add_argument("--with-elasticsearch", action="store_true")
   parser.add_argument("--key", required=True)
   options = parser.parse_args(args)
 

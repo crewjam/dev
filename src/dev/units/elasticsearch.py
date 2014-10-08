@@ -3,8 +3,8 @@ import sys
 from os.path import join as pathjoin, dirname
 
 sys.path.insert(0, pathjoin(dirname(dirname(__file__)), "lib"))
-from docker_unit import ContainerRunnerUnit
-from nodes import NodeBuilder, EtcdAmbassadorUnit
+
+from dev.units.docker import ContainerRunnerUnit
 
 class ElasticsearchPresenceUnit(ContainerRunnerUnit):
   def __init__(self, master=True, data=True):
@@ -20,7 +20,8 @@ class ElasticsearchPresenceUnit(ContainerRunnerUnit):
       name="elasticsearch-" + type_name + "-presence",
       description="elasticsearch presence")
 
-    self.extra_unit.append("BindsTo=elasticsearch-{}@%i.service".format(type_name))
+    self.extra_unit.append("BindsTo=elasticsearch-{}@%i.service".format(
+      type_name))
     self.command = [
       "/bin/presence",
       "--etcd-prefix=/services/elasticsearch/{}".format(type_name),
@@ -41,7 +42,8 @@ class ElasticsearchAmbassadorUnit(ContainerRunnerUnit):
     ContainerRunnerUnit.__init__(self,
       container="crewjam/ambassador",
       name="elasticsearch-{}-amb".format(self.base_service_name),
-      description="Elasticsearch ambassador for {}".format(self.base_service_name))
+      description="Elasticsearch ambassador for {}".format(
+        self.base_service_name))
     self.options.extend(["-p", "9200:9200"])
     self.command = [
       "/bin/ambassador",
@@ -52,7 +54,8 @@ class ElasticsearchAmbassadorUnit(ContainerRunnerUnit):
 
     self.extra_unit.append("Before={}".format(self.service_name))
 
-    self.x_fleet.append("X-ConditionMachineOf={}".format(self.service_name))
+    self.x_fleet.append("X-ConditionMachineOf={}".format(
+      self.service_name))
 
     # Sadly we cannot run on hosts with any of these other things because we
     # bind to port 9200 just like they do.
@@ -99,54 +102,8 @@ class ElasticsearchUnit(ContainerRunnerUnit):
       self.x_fleet.append("X-Conflicts=elasticsearch-{}@*.service"
         .format(type_name_))
 
-class ElasticsearchNodeBuilder(NodeBuilder):
-  name = "nodes-es"
-  instance_type = "m3.xlarge"
 
-  def BuildCloudConfigYaml(self):
-    data = {
-      "coreos": {
-        "fleet": {
-          "metadata": "role=main"
-        },
-        "units": [
-          {"name": "etcd-amb.service", "command": "start", "content":
-            str(EtcdAmbassadorUnit(discovery_url=self.options.discovery_url))},
-          {"name": "elasticsearch.service", "command": "start", "content":
-            str(ElasticsearchUnit(master=False, data=True))},
-          {
-            "name": "data0.mount",
-            "command": "start",
-            "content":
-              "[Mount]\n"
-              "What=/dev/xvdb\n"
-              "Where=/data0\n"
-              "Type=ext3\n"
-          },
-          {
-            "name": "data1.mount",
-            "command": "start",
-            "content":
-              "[Mount]\n"
-              "What=/dev/xvdc\n"
-              "Where=/data1\n"
-              "Type=ext3\n"
-          }
-        ]
-      }
-    }
-    return data
-
-  def AuthorizeServices(self):
-    for group in ["nodes-main", "nodes-es", "nodes-worker"]:
-      for port in [9200, 9300]:
-        self.AuthorizeInternalService("elasticsearch" + str(port), port, group)
-
-  def GetAutoScaleSizeLimits(self):
-    min_size, max_size = 3, 30
-    return min_size, max_size
-
-if __name__ == "__main__":
+def Main():
   file("elasticsearch-master@.service", "w").write(
     str(ElasticsearchUnit(master=True, data=False)))
   file("elasticsearch-master-presence@.service", "w").write(
@@ -164,5 +121,11 @@ if __name__ == "__main__":
   for service_name in ["loadtest@%i.service"]:
     base_service_name, suffix = service_name.split("@", 1)
     suffix = suffix.replace("%i", "")
-    file("elasticsearch-{}-amb@{}".format(base_service_name, suffix), "w").write(
-      str(ElasticsearchAmbassadorUnit(service_name=service_name)))
+    file("elasticsearch-{}-amb@{}".format(base_service_name, suffix), "w")\
+      .write(str(ElasticsearchAmbassadorUnit(service_name=service_name)))
+
+
+if __name__ == "__main__":
+  Main()
+
+

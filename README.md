@@ -106,6 +106,10 @@ is containers.
       ./$container/build.sh
     done
 
+### Unit Files ###
+
+    python src/dev/units/build.py --output=units
+
 ### Cloud Formation ###
 
 Cloud Formation is mechanism and format for declaring AWS resources. Rather than
@@ -113,9 +117,11 @@ hand produce a repetitive document, we have code that produces a cloudformation
 document you can use to create a cluster in AWS. For convenience you can also 
 build and update clusters with the tool as well. 
 
-    cloudformation/build.py --dns-name dev.example.com \
+    URL=$(curl https://discovery.etcd.io/new)
+    python src/dev/cloudformation/build.py --dns-name dev.example.com \
       --key=alice@example.com \
-      build
+      --discovery-url=$URL \
+      create
 
 Our cloud formation document launches instances in a VPC split into three 
 subnets, one for each of three availability zones. All the machines are launched
