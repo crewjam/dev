@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+  <meta charset="UTF-8">
+  <title>Units</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https:///maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+  <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+  <style>
+    body {
+      padding: 20px;
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+
+<table class="table">
+  {% for name, stuff in machines %}
+    <tr>
+      <td><a href="{{ url_for('get_unit', unit=unit.name) }}">
+        {{ name }}
+      </a></td>
+      <td><code>{{ stuff }}</code></td>
+    </tr>
+  {% endfor %}
+</table>
+
+</body>
+</html>

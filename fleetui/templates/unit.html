@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+  <meta charset="UTF-8">
+  <title>Unit {{ name }}</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https:///maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+  <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+  <style>
+    body {
+      padding: 20px;
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+
+<h1>{{ name }}</h1>
+
+<button class="rest btn" data-method="DELETE"
+        next_url="{{ url_for('list_units') }}"
+        data-href="{{ url_for('destroy_unit', unit=name) }}">Destroy</button>
+<button class="rest btn" data-method="POST"
+        next_url="{{ url_for('get_unit', unit=name) }}"
+        data-href="{{ url_for('start_unit', unit=name) }}">Start</button>
+
+<h2>Status</h2>
+<pre>{{ status_output }}</pre>
+
+<h2>Journal</h2>
+<pre>{{ journal_output }}</pre>
+
+<h2>Systemd Unit</h2>
+<pre>{{ cat_output }}</pre>
+
+</body>
+</html>

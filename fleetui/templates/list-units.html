@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+  <meta charset="UTF-8">
+  <title>Units</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https:///maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+  <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+  <style>
+    body {
+      padding: 20px;
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+
+<table class="table">
+  {% for unit in units %}
+    <tr>
+      <td><a href="{{ url_for('get_unit', unit=unit.name) }}">
+        {{ unit.name }}
+      </a></td>
+      <td><code>{{ unit.stuff }}</code></td>
+      <td>
+        <button class="rest btn"
+           data-method="DELETE"
+           next_url="{{ url_for('list_units') }}"
+           data-href="{{ url_for('destroy_unit', unit=unit.name) }}">Destroy</button>
+        <button class="rest btn"
+           data-method="POST"
+           next_url="{{ url_for('get_unit', unit=unit.name) }}"
+           data-href="{{ url_for('start_unit', unit=unit.name) }}">Start</button>
+      </td>
+    </tr>
+  {% endfor %}
+</table>
+
+<script>
+  $("button.rest").click(function() {
+    var button = $(this);
+
+    $.ajax({
+      url: button.data("href"),
+      type: button.data("method"),
+    })
+    .done(function (data, textStatus, jqXhr) {
+      if (button.attr("next_url")) {
+        window.location = button.attr("next_url");
+      } if (jqXhr.getResponseHeader("Location")) {
+        window.location = jqXhr.getResponseHeader("Location");
+      } else {
+        window.location = window.location;
+      }
+    })
+    .fail(function( jqXHR, textStatus ) {
+      alert( "Request failed: " + textStatus );
+    });
+  });
+
+</script>
+
+</body>
+</html>
