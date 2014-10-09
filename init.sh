@@ -22,4 +22,5 @@ units="\
   gerrit-presence@2.service
   gerrit-presence@3.service
   "
+fleetctl destroy $units
 fleetctl start $units

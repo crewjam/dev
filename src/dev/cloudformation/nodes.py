@@ -103,6 +103,7 @@ class NodeBuilder(object):
       }
     }
 
+
   def BuildSecurityGroup(self):
     self.data["Resources"]["SecurityGroup" + AWSSafeString(self.name)] = {
       "Type": "AWS::EC2::SecurityGroup",
@@ -129,7 +130,8 @@ class NodeBuilder(object):
   def AuthorizeServices(self):
     raise NotImplementedError()
 
-  def AuthorizeInternalService(self, service_name, port, other_group):
+  def AuthorizeInternalService(self, service_name, port, other_group,
+      ip_protocol="tcp"):
     sg_name = AWSSafeString("SecurityGroupAllow {} {} to {}".format(
         service_name, other_group, self.name))
 
@@ -137,7 +139,7 @@ class NodeBuilder(object):
       "Type": "AWS::EC2::SecurityGroupIngress",
       "Properties": {
         "GroupId": {"Ref": "SecurityGroup" + AWSSafeString(self.name)},
-        "IpProtocol": "tcp",
+        "IpProtocol": ip_protocol,
         "FromPort": str(port),
         "ToPort": str(port),
         "SourceSecurityGroupId":
@@ -146,8 +148,8 @@ class NodeBuilder(object):
     }
 
 class MainNodeBuilder(NodeBuilder):
-  name = "nodes-main"
-  instance_type = "m3.medium"
+  name = "main"
+  instance_type = "m1.small"
 
   def BuildCloudConfigYaml(self):
     data = {
@@ -171,22 +173,19 @@ class MainNodeBuilder(NodeBuilder):
   def AuthorizeServices(self):
     # TODO(ross): this is less general than it should be w/r/t allowing
     #   applications
-    all_groups = ["nodes-main", "nodes-worker"]
-    if self.options.with_elasticsearch:
-      all_groups.append("nodes-es")
+    all_groups = ["main", "worker", "kubernetes"]
 
     for group in all_groups:
       for port in [4001, 7001]:
         self.AuthorizeInternalService("etcd" + str(port), port, group)
-      for port in [9200, 9300]:
-        self.AuthorizeInternalService("elasticsearch" + str(port), port, group)
 
   def GetAutoScaleSizeLimits(self):
-    min_size, max_size = 3, 9
+    min_size, max_size = 1, 3
     return min_size, max_size
 
+
 class WorkerNodeBuilder(NodeBuilder):
-  name = "nodes-worker"
+  name = "worker"
   instance_type = "m3.medium"
 
   def BuildCloudConfigYaml(self):
@@ -206,14 +205,15 @@ class WorkerNodeBuilder(NodeBuilder):
     return data
 
   def AuthorizeServices(self):
-    all_groups = ["nodes-main", "nodes-worker"]
-    if self.options.with_elasticsearch:
-      all_groups.append("nodes-es")
+    pass
+    #all_groups = ["nodes-main", "nodes-worker"]
+    #if self.options.with_elasticsearch:
+    #  all_groups.append("nodes-es")
 
-    for group in all_groups:
-      for port in [9200, 9300]:
-        self.AuthorizeInternalService("elasticsearch" + str(port), port, group)
+    #for group in all_groups:
+    #  for port in [9200, 9300]:
+    #    self.AuthorizeInternalService("elasticsearch" + str(port), port, group)
 
   def GetAutoScaleSizeLimits(self):
-    min_size, max_size = 3, 30
+    min_size, max_size = 0, 30
     return min_size, max_size

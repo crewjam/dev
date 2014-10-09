@@ -19,6 +19,14 @@ class EtcdAmbassadorUnit(ContainerRunnerUnit):
     # start before fleet
     self.extra_unit.append("Before=fleet.service")
 
+    # start after docker
+    self.extra_unit.extend([
+      "After=docker.service",
+      "Wants=docker.service",
+    ])
+
+    self.extra_service.append("Restart=always")
+
     # can't be on the same host as etcd
     self.extra_unit.append("Conflicts=etcd.service")
 

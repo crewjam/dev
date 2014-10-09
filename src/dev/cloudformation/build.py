@@ -10,7 +10,8 @@ import boto.cloudformation
 
 from dev.cloudformation.network import BuildNetwork
 from dev.cloudformation.nodes import MainNodeBuilder, WorkerNodeBuilder
-from dev.cloudformation.elasticsearch import ElasticsearchNodeBuilder
+# from dev.cloudformation.elasticsearch import ElasticsearchNodeBuilder
+from dev.cloudformation.kubernetes import KubernetesNodeBuilder
 
 data = {
   "AWSTemplateFormatVersion": "2010-09-09",
@@ -25,37 +26,10 @@ data = {
     "RegionMap" : {
       # TODO(ross): remove this map because we know the region at compile time
       # TODO(ross): these AMIs use EBS, we would prefer instance store.
-      "ap-northeast-1" : {
-          "AMI" : "ami-1780a916"
-      },
-
-      "sa-east-1" : {
-          "AMI" : "ami-1d1bb100"
-      },
-
-      "ap-southeast-2" : {
-          "AMI" : "ami-abd0b391"
-      },
-
-      "ap-southeast-1" : {
-          "AMI" : "ami-264f6874"
-      },
-
-      "us-east-1" : {
-          "AMI" : "ami-7e8b3f16"
-      },
-
+      # TODO(ross): figure out how to keep this map up to date
       "us-west-2" : {
-          "AMI" : "ami-d9d695e9",
+          "AMI" : "ami-e790ddd7",  # beta channel
       },
-
-      "us-west-1" : {
-          "AMI" : "ami-d98b839c"
-      },
-
-      "eu-west-1" : {
-          "AMI" : "ami-b48f2ec3"
-      }
     }
   },
   "Resources": {}
@@ -65,8 +39,9 @@ def Build(options, data):
   BuildNetwork(options, data)
   MainNodeBuilder(options, data)()
   WorkerNodeBuilder(options, data)()
-  if options.with_elasticsearch:
-    ElasticsearchNodeBuilder(options, data)()
+  KubernetesNodeBuilder(options, data)()
+  #if options.with_elasticsearch:
+  #  ElasticsearchNodeBuilder(options, data)()
 
 
 def Main(args=sys.argv[1:]):
@@ -74,7 +49,7 @@ def Main(args=sys.argv[1:]):
   parser.add_argument("mode", choices=["cat", "validate", "create", "update"])
   parser.add_argument("--dns-name", required=True)
   parser.add_argument("--discovery-url")
-  parser.add_argument("--with-elasticsearch", action="store_true")
+  #parser.add_argument("--with-elasticsearch", action="store_true")
   parser.add_argument("--key", required=True)
   options = parser.parse_args(args)
 

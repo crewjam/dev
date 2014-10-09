@@ -15,6 +15,7 @@ class ContainerRunnerUnit(object):
     self.options = []
     self.command = []
     self.shell = False
+    self.start_timeout = "120"
 
   def GetDockerRunCommand(self):
     options = " ".join(self.options)
@@ -37,7 +38,7 @@ class ContainerRunnerUnit(object):
 
     print >>unit, "[Service]"
     print >>unit, "EnvironmentFile=/etc/environment"
-    print >>unit, "TimeoutStartSec=0"
+    print >>unit, "TimeoutStartSec={}".format(self.start_timeout)
     if self.prestart_kill:
       print >>unit, "ExecStartPre=-/usr/bin/docker kill " + self.name
     if self.prestart_rm:
