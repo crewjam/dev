@@ -1,7 +1,14 @@
 #!/bin/bash
 set -ex
 
-SECRET="${@}"
+[ -z "$SERVICE" ] && (echo "\$SERVICE must be defined"; exit 1)
+
+SECRET=$(etcdctl get /service/$SERVICE/btsync_secret)
+if [ -z "$SECRET" ] ; then
+  etcdctl mk /service/$SERVICE $(btsync --generate-secret) || true
+  SECRET=$(etcdctl get /service/$SERVICE/btsync_secret)
+fi
+
 echo "Starting btsync with secret: $SECRET"
 
 echo "{
@@ -24,6 +31,6 @@ echo "{
             \"use_sync_trash\": false
         }
     ]
-}" > /btsync/btsync.conf
+}" > /etc/btsync.conf
 
-exec btsync --config /btsync/btsync.conf --nodaemon
+exec btsync --config /etc/btsync.conf --nodaemon
