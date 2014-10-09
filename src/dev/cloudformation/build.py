@@ -10,7 +10,7 @@ import boto.cloudformation
 
 from dev.cloudformation.network import BuildNetwork
 from dev.cloudformation.nodes import MainNodeBuilder, WorkerNodeBuilder
-# from dev.cloudformation.elasticsearch import ElasticsearchNodeBuilder
+from dev.cloudformation.elasticsearch import ElasticsearchNodeBuilder
 from dev.cloudformation.kubernetes import KubernetesNodeBuilder
 
 data = {
@@ -40,8 +40,7 @@ def Build(options, data):
   MainNodeBuilder(options, data)()
   WorkerNodeBuilder(options, data)()
   KubernetesNodeBuilder(options, data)()
-  #if options.with_elasticsearch:
-  #  ElasticsearchNodeBuilder(options, data)()
+  ElasticsearchNodeBuilder(options, data)()
 
 
 def Main(args=sys.argv[1:]):

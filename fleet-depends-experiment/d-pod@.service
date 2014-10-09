@@ -1,0 +1,16 @@
+[Unit]
+Description=main service
+Requires=d@%i.service
+Requires=d-data-volume@%i.service
+Requires=d-db-amb@%i.service
+Requires=d-presence@%i.service
+BindsTo=d@%i.service
+BindsTo=d-data-volume@%i.service
+BindsTo=d-db-amb@%i.service
+BindsTo=d-presence@%i.service
+
+[Service]
+ExecStart=/bin/bash -c 'while true; do sleep 1; date; done'
+
+[X-Fleet]
+X-Conflicts=d-pod@*.service

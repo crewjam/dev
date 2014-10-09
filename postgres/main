@@ -1,0 +1,63 @@
+#!/bin/bash
+
+[ -z "$SERVICE_NAME" ] && (echo "\$SERVICE_NAME must be defined ; exit 1)
+[ -z "$INSTANCE" ] && (echo "\$INSTANCE must be defined ; exit 1)
+[ -z "$PRIVATE_IP" ] && (echo "\$PRIVATE_IP must be defined ; exit 1)
+
+cooldown_time=30  # seconds
+data_dir=/data/db
+
+etcd_dir="/services/$SERVICE_NAME"
+etcd_path="$etcd_dir/master"
+etcdctl mkdir $etcd_dir 2>/dev/null || true
+etcdctl set $etcd_dir/instances/$INSTANCE/private_ip $PRIVATE_IP
+
+while true; do
+  # We are already the master
+  if [ "$(etcdctl get "$etcd_path")" == "$INSTANCE" ] ; then
+    echo "$SERVICE_NAME/${INSTANCE}: we are already the master"
+    break
+  fi
+
+  # Hold an election
+  if etcdctl mk "$etcd_path" "$INSTANCE" 2>/dev/null ; then
+    echo "$SERVICE_NAME/${INSTANCE}: we won the master election"
+    break
+  fi
+
+  # Somebody else is the master
+  echo "$SERVICE_NAME/${INSTANCE}: master is $(etcdctl get $etcd_path)"
+  etcdctl watch $etcd_path
+done
+
+function clean_up {
+  # Replace with a key that expires in a short time so that if we are restarted
+  # we can be master again when we restart.
+  etcdctl set "$etcd_path" "$INSTANCE" --swap-with-value="$INSTANCE" \
+    --ttl=$cooldown_time
+}
+
+trap clean_up SIGHUP SIGINT SIGTERM
+
+# Maybe initialize the storage
+if ! etcdctl get $etcd_dir/initdb_called 2>/dev/null ; then
+  [ -d $data_dir ] || mkdir $data_dir
+  chown -R postgres "$data_dir"
+  su postgres -c "/usr/lib/postgresql/9.3/bin/initdb --data_dir=$data_dir" && \
+    etcdctl mk $etcd_dir/initdb_called "by instance $INSTANCE on $(date)"
+
+  echo "listen_addresses=0.0.0.0" > $data_dir/postgresql.clnf
+  { echo; echo 'host all all 0.0.0.0/0 trust'; } >> $data_dir/pg_hba.conf
+fi
+
+# Go be a postgresql server
+chown -R postgres "$data_dir"
+chmod 0700 "$data_dir"
+
+su postgres -c "/usr/lib/postgresql/9.3/bin/postgres \
+  --config-file=$data_dir/postgresql.conf"
+exit_code=$?
+
+clean_up
+exit $exit_code
+

@@ -2,31 +2,47 @@
 
 import argparse
 import time
+import os
+import re
 import signal
-import socket
-import subprocess
 import sys
 
 import etcd
 
-
 def Main(args=sys.argv[1:]):
   parser = argparse.ArgumentParser()
-  parser.add_argument("--etcd", default="localhost")
+  parser.add_argument("--etcd")
   parser.add_argument("--etcd-prefix")
-  parser.add_argument("--instance")
-  parser.add_argument("--host")
-  parser.add_argument("--public-ip")
-  parser.add_argument("--private-ip")
-  parser.add_argument("--port", type=int, default=None)
+  parser.add_argument("--instance", default=os.environ.get("INSTANCE"))
+  parser.add_argument("--host", default=os.environ.get("HOSTNAME"))
+  parser.add_argument("--public-ip", default=os.environ.get("PUBLIC_IP"))
+  parser.add_argument("--private-ip", default=os.environ.get("PRIVATE_IP"))
+  parser.add_argument("--port", type=int, default=os.environ.get("PORT"))
   parser.add_argument("--ttl", type=int, default=60)
   options = parser.parse_args(args)
+
+  if options.etcd is None:
+    _, options.etcd, _ = re.match("http://(.*):4001",
+      os.environ.get("ETCDCTL_PEERS")).groups()
+
+  if options.etcd_prefix is None:
+    options.etcd_prefix = "/services/{}".format(os.environ.get("SERVICE_NAME"))
 
   client = etcd.Client(host=options.etcd)
   prefix = options.etcd_prefix + "/instances/" + str(options.instance)
 
+  if options.host is not None:
+    print prefix + "/host", "=", options.host
+  if options.port is not None:
+    print prefix + "/port",  "=", str(options.port)
+  if options.private_ip is not None:
+    print prefix + "/private_ip",  "=", options.private_ip
+  if options.public_ip is not None:
+    print prefix + "/public_ip",  "=", options.public_ip
+
   def Clear():
     client.delete(prefix, recursive=True)
+    print "cleared", prefix
   signal.signal(signal.SIGTERM, Clear)
   signal.signal(signal.SIGINT, Clear)
 

@@ -45,8 +45,14 @@ def Configure(options, client):
       master_instance = None
     print master_instance, "is the master"
 
+  try:
+    children = client.get(options.etcd_prefix + "/instances/").children
+  except KeyError:
+    client.write(options.etcd_prefix + "/instances/", dir=True)
+    children = []
+
   server_configurations = []
-  for instance_key in client.get(options.etcd_prefix + "/instances/").children:
+  for instance_key in children:
     instance = instance_key.key.split("/")[-1]
 
     print "considering", instance

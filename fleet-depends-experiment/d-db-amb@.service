@@ -1,0 +1,10 @@
+[Unit]
+Description=helper 1
+BindTo=d-pod@%i.service
+
+[Service]
+ExecStart=/bin/bash -c 'while true; do sleep 1; date; done'
+
+[X-Fleet]
+X-ConditionMachineOf=d-pod@%i.service
+

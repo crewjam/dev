@@ -149,7 +149,7 @@ class NodeBuilder(object):
 
 class MainNodeBuilder(NodeBuilder):
   name = "main"
-  instance_type = "m1.small"
+  instance_type = "m3.medium" # "m1.small"
 
   def BuildCloudConfigYaml(self):
     data = {
@@ -215,5 +215,5 @@ class WorkerNodeBuilder(NodeBuilder):
     #    self.AuthorizeInternalService("elasticsearch" + str(port), port, group)
 
   def GetAutoScaleSizeLimits(self):
-    min_size, max_size = 0, 30
+    min_size, max_size = 3, 30
     return min_size, max_size

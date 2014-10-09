@@ -5,7 +5,7 @@ from dev.units.etcd import EtcdAmbassadorUnit
 
 
 class ElasticsearchNodeBuilder(NodeBuilder):
-  name = "nodes-es"
+  name = "elasticsearch"
   instance_type = "m3.xlarge"
 
   def BuildCloudConfigYaml(self):
@@ -45,10 +45,10 @@ class ElasticsearchNodeBuilder(NodeBuilder):
     return data
 
   def AuthorizeServices(self):
-    for group in ["nodes-main", "nodes-es", "nodes-worker"]:
+    for group in ["main", "elasticsearch", "worker"]:
       for port in [9200, 9300]:
         self.AuthorizeInternalService("elasticsearch" + str(port), port, group)
 
   def GetAutoScaleSizeLimits(self):
-    min_size, max_size = 3, 30
+    min_size, max_size = 0, 30
     return min_size, max_size

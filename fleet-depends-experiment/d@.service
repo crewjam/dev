@@ -1,0 +1,14 @@
+[Unit]
+Description=main service
+Requires=d-data-volume@%i.service
+Requires=d-db-amb@%i.service
+After=d-data-volume@%i.service
+After=d-db-amb@%i.service
+Before=d-presence@%i.service
+BindTo=d-pod@%i.service
+
+[Service]
+ExecStart=/bin/bash -c 'while true; do sleep 1; date; done'
+
+[X-Fleet]
+X-ConditionMachineOf=d-pod@%i.service

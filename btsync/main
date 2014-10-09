@@ -1,13 +1,26 @@
 #!/bin/bash
-set -ex
+set -x
 
-[ -z "$SERVICE" ] && (echo "\$SERVICE must be defined"; exit 1)
+[ -z "$VOLUME_NAME" ] && (echo "\$VOLUME_NAME must be defined"; exit 1)
 
-SECRET=$(etcdctl get /service/$SERVICE/btsync_secret)
+etcd_dir="/volumes/$VOLUME_NAME"
+etcd_path="$etcd_dir/btsync_secret"
+
+SECRET=$(etcdctl get $etcd_path 2>/dev/null)
 if [ -z "$SECRET" ] ; then
-  etcdctl mk /service/$SERVICE $(btsync --generate-secret) || true
-  SECRET=$(etcdctl get /service/$SERVICE/btsync_secret)
+  etcdctl mkdir $etcd_dir 2>/dev/null
+  etcdctl mk $etcd_path $(btsync --generate-secret) 2>/dev/null
+
+  # Fetch the secret again just in case some other instance generated one at the
+  # same file
+  SECRET=$(etcdctl get $etcd_path)
+
+  if [ -z "$SECRET" ] ; then
+    echo "Failed to generate or set the btsync secret"
+    exit 1;
+  fi
 fi
+
 
 echo "Starting btsync with secret: $SECRET"
 

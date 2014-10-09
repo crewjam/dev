@@ -7,23 +7,17 @@ from dev.units.docker import ContainerRunnerUnit
 
 
 class EtcdAmbassadorUnit(ContainerRunnerUnit):
-  CONTAINER = "crewjam/etcd-amb"
-
   def __init__(self, discovery_url):
-    ContainerRunnerUnit.__init__(self,
-      container=self.CONTAINER,
-      name="etcd-amb",
-      description="etcd ambassador")
-    self.options.extend(["-e", "ETCD_DISCOVERY_URL=" + discovery_url])
+    ContainerRunnerUnit.__init__(self, "crewjam/etcd-amb")
+
+    self.environment["ETCD_DISCOVERY_URL"] = discovery_url
 
     # start before fleet
-    self.extra_unit.append("Before=fleet.service")
+    self.set("Unit", "Before", "fleet.service")
 
     # start after docker
-    self.extra_unit.extend([
-      "After=docker.service",
-      "Wants=docker.service",
-    ])
+    self.set("Unit", "After", "docker.service")
+    self.set("Unit", "Wants", "docker.service")
 
     self.extra_service.append("Restart=always")
 

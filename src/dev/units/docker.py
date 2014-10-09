@@ -1,62 +1,67 @@
-import StringIO
 
-class ContainerRunnerUnit(object):
-  def __init__(self, container, name, description):
+import operator
+import pipes
+from collections import OrderedDict
+
+from dev.units.unit import SystemdUnit
+
+class ContainerRunnerUnit(SystemdUnit):
+  def __init__(self, container, name=None, description=None):
+    SystemdUnit.__init__(self)
     self.container = container
-    self.name = name or container
-    self.description = description or name
-    self.prestart_kill = True
-    self.prestart_rm = True
-    self.prestart_pull = True
-    self.extra_prestart = []
-    self.extra_service = []
-    self.extra_unit = []
-    self.x_fleet = []
-    self.options = []
+    self.name = name if name else container.split("/")[-1]
+
+    self.set("Unit", "Description",
+      description if description else lambda: self.name)
+
+    self.set("Service", "EnvironmentFile", "/etc/environment")
+    self.set("Service", "TimeoutStartSec", "120")
+
+    self.set("Service", "Restart", "always")
+    self.set("Service", "RestartSec", "15sec")
+    self.set("Service", "StartLimitInterval", "10")
+    self.set("Service", "StartLimitBurst", "5")
+
+    self.set("Service", "ExecStartPre",
+      lambda: "-/usr/bin/docker kill {}".format(self.name))
+    self.set("Service", "ExecStartPre",
+      lambda: "-/usr/bin/docker rm {}".format(self.name))
+    self.set("Service", "ExecStartPre",
+      lambda: "-/usr/bin/docker pull {}".format(self.container))
+    self.set("Service", "ExecStart", self.GetDockerRunCommand)
+    self.set("Service", "ExecStop",
+      lambda: "/usr/bin/docker kill {}".format(self.name))
+
+    self.environment = OrderedDict()
+    self.environment["INSTANCE"] = "%i"
+    self.environment["HOSTNAME"] = "%H"
+    self.environment["PUBLIC_IP"] = "${COREOS_PRIVATE_IPV4}"
+    self.environment["PRIVATE_IP"] = "${COREOS_PRIVATE_IPV4}"
+    self.environment["ETCDCTL_PEERS"] = "http://${COREOS_PRIVATE_IPV4}:4001"
+
+    self.ports = []
+    self.volumes = []
     self.command = []
-    self.shell = False
-    self.start_timeout = "120"
 
   def GetDockerRunCommand(self):
-    options = " ".join(self.options)
-    command = " ".join(self.command)
-    return_value = "/usr/bin/docker run --rm --name {self.name} " \
-      "{options} {self.container} {command}".format(**locals())
-    if self.shell:
-      return_value = "/bin/bash -c '{}'".format(
-        return_value.replace("'", "\\'"))
-    return return_value
-
-  def __str__(self):
-    unit = StringIO.StringIO()
-
-    print >>unit, "[Unit]"
-    print >>unit, "Description=" + self.description
-    for extra_unit_line in self.extra_unit:
-      print >>unit, extra_unit_line
-    print >>unit, ""
-
-    print >>unit, "[Service]"
-    print >>unit, "EnvironmentFile=/etc/environment"
-    print >>unit, "TimeoutStartSec={}".format(self.start_timeout)
-    if self.prestart_kill:
-      print >>unit, "ExecStartPre=-/usr/bin/docker kill " + self.name
-    if self.prestart_rm:
-      print >>unit, "ExecStartPre=-/usr/bin/docker rm " + self.name
-    if self.prestart_pull:
-      print >>unit, "ExecStartPre=/usr/bin/docker pull " + self.container
-    for extra_prestart in self.extra_prestart:
-      print >>unit, "ExecStartPre=" + extra_prestart
-    print >>unit, "ExecStart=" + self.GetDockerRunCommand()
-    print >>unit, "ExecStop=/usr/bin/docker kill " + self.name
-
-    for service_line in self.extra_service:
-      print >>unit, service_line
-    print >>unit, ""
-
-    if self.x_fleet:
-      print >>unit, "[X-Fleet]"
-      for line in self.x_fleet:
-        print >>unit, line
-
-    return unit.getvalue()
+    command = ["/usr/bin/docker", "run", "--rm"]
+    command.extend(["--name", self.name])
+    for name, value in self.environment.items():
+      if operator.isCallable(value):
+        value = value()
+      command.extend(["-e", "{}={}".format(name, value)])
+    for value in self.ports:
+      if operator.isCallable(value):
+        value = value()
+      command.extend(["-p", str(value)])
+    for value in self.volumes:
+      if operator.isCallable(value):
+        value = value()
+      if isinstance(value, tuple):
+        host_path, container_path = value
+        value = host_path + ":" + container_path
+      command.extend(["-v", str(value)])
+    command.append(self.container)
+    if self.command:
+      command.extend(self.command)
+    return " ".join(map(pipes.quote, command))

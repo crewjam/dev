@@ -9,27 +9,16 @@ from dev.units.docker import ContainerRunnerUnit
 class PresenceUnit(ContainerRunnerUnit):
   CONTAINER = "crewjam/presence"
 
-  def __init__(self, service_name):
-    self.service_name = service_name
-    self.base_service_name = service_name.split("@")[0]
-    ContainerRunnerUnit.__init__(self,
-      container=self.CONTAINER,
-      name=self.base_service_name + "-presence",
-      description=self.base_service_name + " presence")
+  def __init__(self, unit):
+    name = unit.name + "-presence"
+    ContainerRunnerUnit.__init__(self, container=self.CONTAINER, name=name)
 
-    self.shell = True
-    self.command = [
-      "/bin/presence",
-      "--etcd-prefix=/services/{}".format(self.base_service_name),
-      "--etcd=${COREOS_PRIVATE_IPV4}",
-      "--instance=%i",
-      "--host=%H",
-      "--private-ip=${COREOS_PRIVATE_IPV4}",
-      "--public-ip=${COREOS_PUBLIC_IPV4}"
-    ]
+    self.environment["SERVICE_NAME"] = unit.name
 
-    self.extra_unit.append("BindsTo={}".format(self.service_name))
-    self.x_fleet.append("X-ConditionMachineOf={}".format(self.service_name))
+    self.set("Unit", "After", "{}@%i.service".format(unit.name))
+    self.set("Unit", "BindsTo", "{}@%i.service".format(unit.name))
+    self.set("X-Fleet", "X-ConditionMachineOf",
+      "{}@%i.service".format(unit.name))
 
 
 def Main(args=sys.argv[1:]):
