@@ -32,7 +32,12 @@ def Configure(options, client):
 
   resource_records = []
   for instance in client.get(etcd_prefix + "/instances/").children:
-    address = client.get(instance.key + "/public_ip").value
+    try:
+      address = client.get(instance.key + "/public_ip").value
+    except KeyError:
+      print instance.key, "no public_ip"
+      continue
+
     resource_records.append(address)
 
   if a is None:
