@@ -8,6 +8,7 @@ class SystemdUnit(object):
   def __init__(self):
     # A dictionary of section -> [(name, value)]
     self._data = OrderedDict()
+    self.children = []
 
   def set(self, section, name, value):
     self._data.setdefault(section, []).append((name, value))
@@ -34,6 +35,14 @@ class SystemdUnit(object):
       lines.append("")
     return "\n".join(lines)
 
+  def AddChild(self, unit, bind=False):
+    self.set("Unit", "Requires", unit.name + "@%i.service")
+    if bind:
+      self.set("Unit", "BindsTo", unit.name + "@%i.service")
+    self.children.append(unit)
+
+    unit.set("Unit", "BindsTo", self.name + "@%i.service")
+    unit.set("X-Fleet", "X-ConditionMachineOf", self.name + "@%i.service")
 
 class PodUnit(SystemdUnit):
   def __init__(self, service_name):
@@ -43,14 +52,5 @@ class PodUnit(SystemdUnit):
     self.set("Service", "ExecStart",
       "/bin/bash -c 'while true; do sleep 10; done")
     self.set("X-Fleet", "X-Conflicts", self.name + "@*.service")
-    self.children = []
 
-  def AddChild(self, unit, bind=False):
-    self.set("Unit", "Requires", unit.name + "@%i.service")
-    if bind:
-      self.set("Unit", "BindsTo", unit.name + "@%i.service")
-    self.children.append(unit)
-
-    unit.set("Unit", "BindsTo", self.name + "@%i.service")
-    unit.set("X-Fleet", "X-ConditionMachineOf", self.name + "@%i.service")
 

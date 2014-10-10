@@ -2,3 +2,5 @@
 *.pyc
 Attic
 .DS_Store
+nginx/build/nginx
+secrets.sh

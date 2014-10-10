@@ -35,7 +35,7 @@ class ContainerRunnerUnit(SystemdUnit):
     self.environment = OrderedDict()
     self.environment["INSTANCE"] = "%i"
     self.environment["HOSTNAME"] = "%H"
-    self.environment["PUBLIC_IP"] = "${COREOS_PRIVATE_IPV4}"
+    self.environment["PUBLIC_IP"] = "${COREOS_PUBLIC_IPV4}"
     self.environment["PRIVATE_IP"] = "${COREOS_PRIVATE_IPV4}"
     self.environment["ETCDCTL_PEERS"] = "http://${COREOS_PRIVATE_IPV4}:4001"
 

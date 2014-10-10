@@ -9,10 +9,12 @@ from os.path import join as pathjoin
 #  ElasticsearchAmbassadorUnit, ElasticsearchUnit
 #from dev.units.etcd import EtcdAmbassadorUnit
 #from dev.units.presence import PresenceUnit
-from dev.units.gerrit import Build
+from dev.units.gerrit import Build as BuildGerrit
+from dev.units.nginx import Build as BuildNginx
 
 def BuildUnits(options, output):
-  Build(options, output)
+  BuildGerrit(options, output)
+  BuildNginx(options, output)
 
 def Main(args=sys.argv[1:]):
   parser = argparse.ArgumentParser()

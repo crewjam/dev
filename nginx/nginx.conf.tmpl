@@ -1,0 +1,124 @@
+
+user root;
+worker_processes 4;
+pid /dev/null;
+
+error_log /dev/stderr;
+
+events {
+  worker_connections 768;
+  # multi_accept on;
+}
+
+http {
+  sendfile on;
+  tcp_nopush on;
+  tcp_nodelay on;
+  keepalive_timeout 65;
+  types_hash_max_size 2048;
+  # server_tokens off;
+
+  # server_names_hash_bucket_size 64;
+  # server_name_in_redirect off;
+
+  #include /etc/nginx/mime.types;
+  default_type application/octet-stream;
+
+  #log_format custom '$remote_addr - $x_remote_user [$time_local] '
+  #            '"$request" $status $body_bytes_sent '
+  #            '"$http_referer" "$http_user_agent"';
+  log_format custom '$remote_addr - - [$time_local] '
+              '"$request" $status $body_bytes_sent '
+              '"$http_referer" "$http_user_agent"';
+
+  access_log /dev/stdout custom;
+  error_log /dev/stderr;
+
+  gzip on;
+  gzip_disable "msie6";
+  # gzip_vary on;
+  # gzip_proxied any;
+  # gzip_comp_level 6;
+  # gzip_buffers 16 8k;
+  # gzip_http_version 1.1;
+  # gzip_types text/plain text/css application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript;
+
+  client_body_temp_path /tmp/nginx_client_body 1 2;
+  proxy_temp_path /tmp/nginx_proxy;
+  fastcgi_temp_path /tmp/nginx_fastcgi;
+  uwsgi_temp_path /tmp/nginx_uwsgi;
+  scgi_temp_path /tmp/scgi_uwsgi;
+
+  server {
+    listen 80;
+    server_name {{ dns_name }};
+    location / {
+       rewrite ^ https://$server_name$request_uri? permanent;
+    }
+  }
+
+  # TODO(ross): authz
+  # map_hash_bucket_size 4096;
+  # include /var/lib/.../nginx-authz.conf;
+
+  upstream gerrit {
+    {% for instance in GetInstances("gerrit-app") -%}
+      server {{ instance.private_ip }}:8080;
+    {% endfor -%}
+  }
+
+  server {
+    listen 443;
+    server_name {{ dns_name }};
+
+    ssl on;
+    ssl_certificate /etc/nginx/ssl.crt;
+    ssl_certificate_key /etc/nginx/ssl.key;
+    ssl_session_timeout 5m;
+
+    ssl_protocols SSLv3 TLSv1;
+    ssl_ciphers ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv3:+EXP;
+    ssl_prefer_server_ciphers on;
+
+    # TODO(ross): authn
+    #ssl_client_certificate client_cacert.pem;
+    #ssl_verify_client optional;
+
+    location / {
+      # TODO(ross): authn
+      #if ($ssl_client_verify != "SUCCESS") {
+      #  return 401;
+      #}
+
+      proxy_read_timeout 300;
+      proxy_connect_timeout 300;
+      proxy_redirect     off;
+
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_set_header Host $http_host;
+
+      # TODO(ross): authn
+      #proxy_set_header X-Real-IP $remote_addr;
+      #proxy_set_header Remote-User $x_remote_user;
+      #proxy_set_header X-Remote-User $x_remote_user;
+      #proxy_set_header X-Remote-Certificate $ssl_client_s_dn;
+      #proxy_set_header X-Remote-Email $x_remote_email;
+      #proxy_set_header X-Remote-Nickname $x_remote_nickname;
+
+      proxy_pass http://gerrit;
+    }
+  }
+}
+
+tcp {
+  upstream gerrit-ssh {
+    {% for instance in GetInstances("gerrit-app") -%}
+      server {{ instance.private_ip }}:29418;
+    {% endfor -%}
+  }
+  server {
+    listen 1022;
+    proxy_pass gerrit-ssh;
+  }
+  access_log /dev/stdout;
+}
