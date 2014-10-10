@@ -29,6 +29,6 @@ An example unit file:
     ExecStartPre=/usr/bin/docker pull crewjam/etcd-discover
     ExecStart=/usr/bin/docker run --rm --name etcd-discovery \
       -p 4001:4001 \ 
-      -e ETCD_DISCOVERY_URL=https://discovery.etcd.io/45529213ac74477b4bcf9ace49883408 \ 
+      -e ETCD_DISCOVERY_URL=https://discovery.etcd.io/xxxxx \ 
       crewjam/etcd-discover
     ExecStop=/usr/bin/docker kill etcd-discovery

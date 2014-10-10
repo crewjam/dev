@@ -1,7 +1,5 @@
-FROM ubuntu:14.04
-MAINTAINER Ross Kinder <ross@kndr.org>
-
 FROM dockerfile/java:oracle-java7
+MAINTAINER Ross Kinder <ross@kndr.org>
 
 RUN apt-get update && apt-get install -y git postgresql-client
 

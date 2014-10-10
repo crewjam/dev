@@ -75,7 +75,8 @@ def Configure(options, client):
       port = options.port
 
     if options.master_only and master_instance != instance:
-      print instance, "is excluded because it is not the master (%r != %r)" % (master_instance, instance)
+      print instance, "is excluded because it is not the master (%r != %r)" % (
+        master_instance, instance)
       continue
 
     if instance in options.exclude_instance:

@@ -9,35 +9,30 @@ single-master or central services like redis and postgres.
 Example fleet unit (call it frob-data-volume@.service):
 
     [Unit]
-    Description=frob2 data volume
+    Description=btsync data volume gerrit-db
+    After=etcd-amb.service
+    After=etcd.service
+    BindsTo=gerrit-db-pod@%i.service
     
     [Service]
-    TimeoutStartSec=0
-    ExecStartPre=/usr/bin/mkdir -p /var/lib/data/%p
-    ExecStartPre=/usr/bin/docker pull crewjam/btsync
-    ExecStartPre=-/usr/bin/etcdctl mkdir /services/%p
-    
-    # Generate a secret if we don't already have one
-    ExecStartPre=/bin/bash -ex -c '\
-      /usr/bin/etcdctl get /services/%p/btsync_secret || (\
-        /usr/bin/docker run crewjam/btsync btsync --generate-secret | \
-          /usr/bin/etcdctl mk /services/%p/btsync_secret;\
-        sleep 10;\
-      )\
-      '
-    
-    # Run the sync service
-    ExecStart=/bin/bash -c '\
-      docker run --rm --name %p \
-        -v /var/lib/data/%p:/data \
-        crewjam/btsync \
-        start-btsync $(/usr/bin/etcdctl get /services/%p/btsync_secret) \
-      '
-    
-    ExecStop=/usr/bin/docker stop %p
+    EnvironmentFile=/etc/environment
+    TimeoutStartSec=120
+    Restart=always
+    RestartSec=15sec
+    StartLimitInterval=10
+    StartLimitBurst=5
+    ExecStartPre=-/usr/bin/docker kill gerrit-db-data-volume
+    ExecStartPre=-/usr/bin/docker rm gerrit-db-data-volume
+    ExecStartPre=-/usr/bin/docker pull crewjam/btsync
+    ExecStart=/usr/bin/docker run --rm --name gerrit-db-data-volume \
+      -e 'ETCDCTL_PEERS=http://${COREOS_PRIVATE_IPV4}:4001' \
+      -e VOLUME_NAME=gerrit-db \ 
+      -v /data0/gerrit-db-data-volume:/data \
+      crewjam/btsync
+    ExecStop=/usr/bin/docker kill gerrit-db-data-volume
     
     [X-Fleet]
-    X-ConditionMachineOf=frob@%i.service
+    X-ConditionMachineOf=gerrit-db-pod@%i.service
 
 Note: the original idea for this came from this Century Link Lab blog: 
 http://www.centurylinklabs.com/persistent-distributed-filesystems-in-docker-without-nfs-or-gluster/

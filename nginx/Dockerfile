@@ -19,5 +19,4 @@ EXPOSE 80 443 1022
 
 COPY main.py /main
 
-
 CMD /main
