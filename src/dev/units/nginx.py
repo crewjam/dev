@@ -11,6 +11,7 @@ class NginxUnit(ContainerRunnerUnit):
     self.ports.append("80:80")
     self.ports.append("443:443")
     self.ports.append("1022:1022")
+    self.set("X-Fleet", "X-Conflicts", self.name + "@*.service")
 
     self.presence_unit = PresenceUnit(self)
     self.AddChild(self.presence_unit, bind=True)
