@@ -4,3 +4,4 @@ Attic
 .DS_Store
 nginx/build/nginx
 secrets.sh
+src/*.egg-info
