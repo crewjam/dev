@@ -18,23 +18,30 @@ killed by ``SIGTERM`` or ``SIGINT``, it removes the values from etcd.
 Example unit file:
 
     [Unit]
-    Description=mariadb presence service
-    BindsTo=mariadb@%i.service
+    Description=gerrit-app-presence
+    After=gerrit-app@%i.service
+    BindsTo=gerrit-app@%i.service
     
     [Service]
     EnvironmentFile=/etc/environment
-    ExecStartPre=-/usr/bin/docker kill mariadb-presence-%i
-    ExecStartPre=-/usr/bin/docker rm mariadb-presence-%i
-    ExecStartPre=/usr/bin/docker pull crewjam/presence
-    ExecStart=/bin/sh -c '/usr/bin/docker run --rm --name mariadb-presence-%i \
-      crewjam/presence /bin/presence \
-        --etcd-prefix=/services/mariadb \
-        --etcd=${COREOS_PRIVATE_IPV4} \
-        --instance=%i \
-        --port="$(expr 3306 + %i)" \
-      '
-    ExecStop=/usr/bin/docker kill mariadb-presence-%i
-    TimeoutStartSec=0
+    TimeoutStartSec=120
+    Restart=always
+    RestartSec=15sec
+    StartLimitInterval=10
+    StartLimitBurst=5
+    ExecStartPre=-/usr/bin/docker kill gerrit-app-presence
+    ExecStartPre=-/usr/bin/docker rm gerrit-app-presence
+    ExecStartPre=-/usr/bin/docker pull crewjam/presence
+    ExecStart=/usr/bin/docker run --rm --name gerrit-app-presence \
+      -e INSTANCE=%i \
+      -e HOSTNAME=%H \
+      -e 'PUBLIC_IP=${COREOS_PUBLIC_IPV4}' \
+      -e 'PRIVATE_IP=${COREOS_PRIVATE_IPV4}' \
+      -e 'ETCDCTL_PEERS=http://${COREOS_PRIVATE_IPV4}:4001' \
+      -e SERVICE_NAME=gerrit-app \
+      crewjam/presence
+    ExecStop=/usr/bin/docker kill gerrit-app-presence
     
     [X-Fleet]
-    X-ConditionMachineOf=mariadb@%i.service
+    X-ConditionMachineOf=gerrit-app@%i.service
+
