@@ -19,12 +19,10 @@ class EtcdAmbassadorUnit(ContainerRunnerUnit):
     self.set("Unit", "After", "docker.service")
     self.set("Unit", "Wants", "docker.service")
 
-    self.extra_service.append("Restart=always")
-
     # can't be on the same host as etcd
-    self.extra_unit.append("Conflicts=etcd.service")
+    self.set("Unit", "Conflicts", "etcd.service")
 
-    self.options.extend(["-p", "4001:4001"])
+    self.ports.append("4001:4001")
 
 
 def Main(args=sys.argv[1:]):

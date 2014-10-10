@@ -23,6 +23,7 @@ class PostgresPod(PodUnit):
     self.app.environment["ETCDCTL_PEERS"] = "http://${COREOS_PRIVATE_IPV4}:4001"
     self.app.set("Unit", "After", "etcd-amb.service")
     self.app.set("Unit", "After", "etcd.service")
+    self.AddChild(self.app)
 
     self.data_volume = DataVolumeUnit(
       volume_name=name,

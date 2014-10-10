@@ -1,8 +1,53 @@
 #!/bin/sh
 set -ex
 
+[ -z $SERVICE_NAME ] && (echo "\$SERVICE_NAME must be defined"; exit 1)
+[ -z $POSTGRES_SERVER ] && (echo "\$POSTGRES_SERVER must be defined"; exit 1)
+
 echo "postgres server: $POSTGRES_SERVER"
+
+createuser --host=$POSTGRES_SERVER --username=postgres -RDIElS gerrit2 || true
+createdb --host=$POSTGRES_SERVER --username=postgres \
+  --template=template0 -E UTF-8 -O gerrit2 reviewdb || true
+
+[ -d /data/etc ] || mkdir /data/etc
 cat /gerrit.config | sed "s/@@POSTGRES_SERVER@@/$POSTGRES_SERVER/g" \
   > /data/etc/gerrit.config
+
+if [ ! -f /data/etc/ssh_host_key ] ; then
+  (etcdctl get /services/$SERVICE_NAME/ssh_host_key |\
+    base64 -d > /data/etc/ssh_host_key) || true
+fi
+
+if [ ! -f /data/etc/secure.config ] ; then
+  key1=$(etcdctl get /services/$SERVICE_NAME/registerEmailPrivateKey || true)
+  key2=$(etcdctl get /services/$SERVICE_NAME/restTokenPrivateKey || true)
+  if [ ! -z "$key1" ] ; then
+    git config --file /data/etc/secure.config auth.registerEmailPrivateKey $key1
+  fi
+  if [ ! -z "$key2" ] ; then
+    git config --file /data/etc/secure.config auth.restTokenPrivateKey $key2
+  fi
+fi
+
+java -jar /gerrit.war init --batch -d /data --no-auto-start
+
+# capture
+etcdctl mkdir /services/$SERVICE_NAME || true
+cat /data/etc/ssh_host_key | base64 |\
+  (etcdctl mk /services/$SERVICE_NAME/ssh_host_key || true)
+git config --file /data/etc/secure.config auth.registerEmailPrivateKey |\
+  (etcdctl mk /services/$SERVICE_NAME/registerEmailPrivateKey || true)
+git config --file /data/etc/secure.config auth.restTokenPrivateKey |\
+  (etcdctl mk /services/$SERVICE_NAME/restTokenPrivateKey || true)
+
+
+
+# Sometimes we need to reindex (always?)
+export GERRIT_SITE=/data
+export GERRIT_WAR=/data/bin/gerrit.war
+export GERRIT_CONFIG=/data/bin/etc/gerrit.config
+java -jar $GERRIT_WAR reindex
+
 
 exec /data/bin/gerrit.sh supervise -d /data

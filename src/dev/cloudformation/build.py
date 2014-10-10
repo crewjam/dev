@@ -40,7 +40,7 @@ def Build(options, data):
   MainNodeBuilder(options, data)()
   WorkerNodeBuilder(options, data)()
   KubernetesNodeBuilder(options, data)()
-  ElasticsearchNodeBuilder(options, data)()
+  #ElasticsearchNodeBuilder(options, data)()
 
 
 def Main(args=sys.argv[1:]):

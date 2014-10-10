@@ -1,3 +1,0 @@
-createuser --host=postgres --username=postgres -RDIElS gerrit2
-createdb --username=postgres -E UTF-8 -O gerrit2 reviewdb
-java -jar /gerrit.war init --batch -d /data --no-auto-start

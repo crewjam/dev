@@ -48,7 +48,7 @@ def Configure(options, client):
   try:
     children = client.get(options.etcd_prefix + "/instances/").children
   except KeyError:
-    client.write(options.etcd_prefix + "/instances/", dir=True)
+    client.write(options.etcd_prefix + "/instances/", "", dir=True)
     children = []
 
   server_configurations = []

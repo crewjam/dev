@@ -19,12 +19,19 @@ class AmbassadorUnit(ContainerRunnerUnit):
 
     self.ports.append("{}:{}".format(self.port, self.port))
 
-    self.command = [
+    self.command = self.GetCommand()
+
+  def GetCommand(self):
+    return [
       "/bin/ambassador",
       "--etcd-prefix=/services/{}".format(self.foreign_service_name),
       "--etcd=${COREOS_PRIVATE_IPV4}",
       "--port={}".format(self.port),
     ]
+
+class MasterOnlyAmbassadorUnit(AmbassadorUnit):
+  def GetCommand(self):
+    return AmbassadorUnit.GetCommand(self) + ["--master-only"]
 
 
 def Main(args=sys.argv[1:]):

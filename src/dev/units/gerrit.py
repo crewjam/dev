@@ -2,7 +2,7 @@
 
 from os.path import join as pathjoin
 
-from dev.units.ambassador import AmbassadorUnit
+from dev.units.ambassador import MasterOnlyAmbassadorUnit
 from dev.units.data_volume import DataVolumeUnit
 from dev.units.docker import ContainerRunnerUnit
 from dev.units.presence import PresenceUnit
@@ -23,11 +23,11 @@ class GerritFrontendPod(PodUnit):
     self.AddChild(self.app)
 
     self.app_presence = PresenceUnit(self.app)
-    self.AddChild(self.app_presence)
+    self.AddChild(self.app_presence, bind=True)
 
     # TODO(ross): what if we need access to multiple postgres instances? We
     #   should use docker --link instead I think, if we can get it to work
-    self.postgres_amb = AmbassadorUnit(
+    self.postgres_amb = MasterOnlyAmbassadorUnit(
       foreign_service_name=service_name + "-db",
       local_service_name=service_name,
       port=5432)

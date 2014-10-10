@@ -1,11 +1,11 @@
 #!/bin/bash
 
-[ -z "$SERVICE_NAME" ] && (echo "\$SERVICE_NAME must be defined ; exit 1)
-[ -z "$INSTANCE" ] && (echo "\$INSTANCE must be defined ; exit 1)
-[ -z "$PRIVATE_IP" ] && (echo "\$PRIVATE_IP must be defined ; exit 1)
+[ -z "$SERVICE_NAME" ] && (echo "\$SERVICE_NAME must be defined" ; exit 1)
+[ -z "$INSTANCE" ] && (echo "\$INSTANCE must be defined" ; exit 1)
+[ -z "$PRIVATE_IP" ] && (echo "\$PRIVATE_IP must be defined" ; exit 1)
 
 cooldown_time=30  # seconds
-data_dir=/data/db
+export PGDATA=/data/db
 
 etcd_dir="/services/$SERVICE_NAME"
 etcd_path="$etcd_dir/master"
@@ -41,21 +41,21 @@ trap clean_up SIGHUP SIGINT SIGTERM
 
 # Maybe initialize the storage
 if ! etcdctl get $etcd_dir/initdb_called 2>/dev/null ; then
-  [ -d $data_dir ] || mkdir $data_dir
-  chown -R postgres "$data_dir"
-  su postgres -c "/usr/lib/postgresql/9.3/bin/initdb --data_dir=$data_dir" && \
+  [ -d $PGDATA ] || mkdir $PGDATA
+  chown -R postgres "$PGDATA"
+  su postgres -c "/usr/lib/postgresql/9.3/bin/initdb --pgdata=$PGDATA" && \
     etcdctl mk $etcd_dir/initdb_called "by instance $INSTANCE on $(date)"
 
-  echo "listen_addresses=0.0.0.0" > $data_dir/postgresql.clnf
-  { echo; echo 'host all all 0.0.0.0/0 trust'; } >> $data_dir/pg_hba.conf
+  echo "listen_addresses='*'" > $PGDATA/postgresql.conf
+  { echo; echo 'host all all 0.0.0.0/0 trust'; } >> $PGDATA/pg_hba.conf
 fi
 
 # Go be a postgresql server
-chown -R postgres "$data_dir"
-chmod 0700 "$data_dir"
+chown -R postgres "$PGDATA"
+chmod 0700 "$PGDATA"
 
 su postgres -c "/usr/lib/postgresql/9.3/bin/postgres \
-  --config-file=$data_dir/postgresql.conf"
+  --config-file=$PGDATA/postgresql.conf"
 exit_code=$?
 
 clean_up

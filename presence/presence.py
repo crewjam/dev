@@ -22,7 +22,7 @@ def Main(args=sys.argv[1:]):
   options = parser.parse_args(args)
 
   if options.etcd is None:
-    _, options.etcd, _ = re.match("http://(.*):4001",
+    options.etcd, = re.match("http://(.*):4001",
       os.environ.get("ETCDCTL_PEERS")).groups()
 
   if options.etcd_prefix is None:

@@ -205,14 +205,13 @@ class WorkerNodeBuilder(NodeBuilder):
     return data
 
   def AuthorizeServices(self):
-    pass
-    #all_groups = ["nodes-main", "nodes-worker"]
-    #if self.options.with_elasticsearch:
-    #  all_groups.append("nodes-es")
+    all_groups = ["main", "worker", "kubernetes"]
 
-    #for group in all_groups:
-    #  for port in [9200, 9300]:
-    #    self.AuthorizeInternalService("elasticsearch" + str(port), port, group)
+    for group in all_groups:
+      for port in [5432]:
+        self.AuthorizeInternalService("postgres" + str(port), port, group)
+      for port in [8080]:
+        self.AuthorizeInternalService("http" + str(port), port, group)
 
   def GetAutoScaleSizeLimits(self):
     min_size, max_size = 3, 30

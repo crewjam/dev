@@ -45,9 +45,10 @@ class PodUnit(SystemdUnit):
     self.set("X-Fleet", "X-Conflicts", self.name + "@*.service")
     self.children = []
 
-  def AddChild(self, unit):
+  def AddChild(self, unit, bind=False):
     self.set("Unit", "Requires", unit.name + "@%i.service")
-    self.set("Unit", "BindsTo", unit.name + "@%i.service")
+    if bind:
+      self.set("Unit", "BindsTo", unit.name + "@%i.service")
     self.children.append(unit)
 
     unit.set("Unit", "BindsTo", self.name + "@%i.service")
