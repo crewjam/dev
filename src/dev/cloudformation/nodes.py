@@ -27,6 +27,9 @@ class NodeBuilder(object):
   #: i.e. m3.medium
   instance_type = NotImplemented
 
+  #: ports allowed from all addresses
+  public_ports = [22, 80, 443, 1022]
+
   def __init__(self, options, data):
     self.options = options
     self.data = data
@@ -103,7 +106,6 @@ class NodeBuilder(object):
       }
     }
 
-
   def BuildSecurityGroup(self):
     self.data["Resources"]["SecurityGroup" + AWSSafeString(self.name)] = {
       "Type": "AWS::EC2::SecurityGroup",
@@ -111,12 +113,13 @@ class NodeBuilder(object):
         "GroupDescription": self.options.dns_name + "/" + self.name,
         "VpcId": {"Ref": "Vpc"},
         "SecurityGroupIngress": [
+          # TODO(ross): fix this bad style
           {
             "IpProtocol": "tcp",
-            "FromPort": "22",
-            "ToPort": "22",
+            "FromPort": str(port),
+            "ToPort": str(port),
             "CidrIp": "0.0.0.0/0"
-          }
+          } for port in self.public_ports
         ],
         "SecurityGroupEgress": [
           {
@@ -178,6 +181,10 @@ class MainNodeBuilder(NodeBuilder):
     for group in all_groups:
       for port in [4001, 7001]:
         self.AuthorizeInternalService("etcd" + str(port), port, group)
+      for port in [5432]:
+        self.AuthorizeInternalService("postgres" + str(port), port, group)
+      for port in [8080]:
+        self.AuthorizeInternalService("http" + str(port), port, group)
 
   def GetAutoScaleSizeLimits(self):
     min_size, max_size = 1, 3
