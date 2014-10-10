@@ -7,6 +7,7 @@ import sys
 from os.path import isfile
 
 import etcd
+import urllib3
 
 CONFIGURATION  = """
 global
@@ -116,7 +117,10 @@ def Main(args=sys.argv[1:]):
   proc = subprocess.Popen(["haproxy", "-f", "/haproxy.cfg"])
 
   while True:
-    client.read(options.etcd_prefix, recursive=True, wait=True, waitIndex=0)
+    try:
+      client.read(options.etcd_prefix, recursive=True, wait=True, waitIndex=0)
+    except urllib3.exceptions.ReadTimeoutError:
+      pass
 
     state = Configure(options, client=client)
     if state is CHANGED:
