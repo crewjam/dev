@@ -2,18 +2,11 @@ import re
 
 import yaml
 
+from dev.cloudformation.util import AWSSafeString
 from dev.units.etcd import EtcdAmbassadorUnit
 
 
 ZONES = ["us-west-2a", "us-west-2b", "us-west-2c"]
-
-
-def AWSSafeString(name):
-  """
-  Returns a version of name that is likely to meet AWS requirements for the
-  names of AWS resources.
-  """
-  return re.sub("[^A-Za-z0-9]", "", name.title())
 
 
 class NodeBuilder(object):
@@ -38,6 +31,7 @@ class NodeBuilder(object):
     self.BuildAutoScalingGroup()
     self.BuildLaunchConfiguration()
     self.BuildSecurityGroup()
+    self.BuildIamInstanceProfile()
     self.AuthorizeServices()
     return self.data
 
@@ -94,6 +88,7 @@ class NodeBuilder(object):
         #   at compile time.
         "ImageId": { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "AMI" ]},
         "InstanceType": self.instance_type,
+        "IamInstanceProfile": {"Ref": "InstanceProfile"},
         "KeyName": {"Ref": "KeyPair"},
         "SecurityGroups": [{"Ref": "SecurityGroup" + AWSSafeString(self.name)}],
         "AssociatePublicIpAddress": "true",
@@ -127,6 +122,15 @@ class NodeBuilder(object):
             "CidrIp": "0.0.0.0/0"
           }
         ]
+      }
+    }
+
+  def BuildIamInstanceProfile(self):
+    self.data["Resources"]["InstanceProfile"] = {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [{"Ref": "ChaosMonkeyRole"}]
       }
     }
 

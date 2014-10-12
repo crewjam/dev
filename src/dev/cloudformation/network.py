@@ -1,16 +1,11 @@
 import re
+from dev.cloudformation.util import AWSSafeString
 
 VPC_CIDR_BLOCK = "10.10.0.0/16"
 ZONES = ["us-west-2a", "us-west-2b", "us-west-2c"]
 SUBNET_CIDR_BLOCKS = ["10.10.0.0/18", "10.10.64.0/18", "10.10.128.0/18",
   "10.10.192.0/18"]
 
-def AWSSafeString(name):
-  """
-  Returns a version of name that is likely to meet AWS requirements for the
-  names of AWS resources.
-  """
-  return re.sub("[^A-Za-z0-9]", "", name.title())
 
 def BuildNetwork(options, data):
   """

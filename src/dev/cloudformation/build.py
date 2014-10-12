@@ -12,6 +12,7 @@ from dev.cloudformation.network import BuildNetwork
 from dev.cloudformation.nodes import MainNodeBuilder, WorkerNodeBuilder
 from dev.cloudformation.elasticsearch import ElasticsearchNodeBuilder
 from dev.cloudformation.kubernetes import KubernetesNodeBuilder
+from dev.cloudformation.chaosmonkey import BuildChaosMonkey
 
 data = {
   "AWSTemplateFormatVersion": "2010-09-09",
@@ -41,7 +42,7 @@ def Build(options, data):
   WorkerNodeBuilder(options, data)()
   KubernetesNodeBuilder(options, data)()
   #ElasticsearchNodeBuilder(options, data)()
-
+  BuildChaosMonkey(options, data)
 
 def Main(args=sys.argv[1:]):
   parser = argparse.ArgumentParser()
@@ -73,12 +74,14 @@ def Main(args=sys.argv[1:]):
 
   if options.mode == "create":
     cf.create_stack(stack_name, template_body=json.dumps(data),
-      parameters=[("KeyPair", options.key)])
+      parameters=[("KeyPair", options.key)],
+      capabilities=['CAPABILITY_IAM'])
     return
 
   if options.mode == "update":
     cf.update_stack(stack_name, template_body=json.dumps(data),
-      parameters=[("KeyPair", options.key)])
+      parameters=[("KeyPair", options.key)],
+      capabilities=['CAPABILITY_IAM'])
     return
 
 

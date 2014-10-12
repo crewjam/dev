@@ -1,18 +1,12 @@
 import argparse
 import sys
-from os.path import join as pathjoin
 
-#from dev.units.ambassador import AmbassadorUnit
-#from dev.units.btsync import DataVolumeUnit
-#from dev.units.docker import ContainerRunnerUnit
-#from dev.units.elasticsearch import ElasticsearchPresenceUnit, \
-#  ElasticsearchAmbassadorUnit, ElasticsearchUnit
-#from dev.units.etcd import EtcdAmbassadorUnit
-#from dev.units.presence import PresenceUnit
 from dev.units.gerrit import Build as BuildGerrit
 from dev.units.nginx import Build as BuildNginx
+from dev.units.chaosmonkey import Build as BuildChaosMonkey
 
 def BuildUnits(options, output):
+  BuildChaosMonkey(options, output)
   BuildGerrit(options, output)
   BuildNginx(options, output)
 
