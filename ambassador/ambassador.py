@@ -44,6 +44,12 @@ def Configure(options, client):
       master_instance = client.get(options.etcd_prefix + "/master").value
     except KeyError:
       master_instance = None
+    except urllib3.exceptions.ReadTimeoutError:
+      # TODO(ross): we see this regularly in gerrit-db-gerrit-amb and I'm not
+      #   sure why.
+      print "timeout getting the value of", options.etcd_prefix + "/master"
+      return None
+
     print master_instance, "is the master"
 
   try:
