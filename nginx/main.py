@@ -31,7 +31,8 @@ def Configure(options, client):
       for instance_child_key in client.get(instance_key.key).children:
         name = instance_child_key.key.split("/")[-1]
         item[str(name)] = str(instance_child_key.value)
-      items.append((instance_key.key, item))
+      if item:
+        items.append((instance_key.key, item))
     items.sort()
     items = [v for (k, v) in items]
     return items
